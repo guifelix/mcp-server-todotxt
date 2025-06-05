@@ -27,7 +27,8 @@
   "scripts": {
     "build": "tsc",
     "changelog": "conventional-changelog -p conventionalcommits -i CHANGELOG.md -s -r 0",
-    "changelog:latest": "conventional-changelog -p conventionalcommits -r 1 > RELEASE_NOTES.md"
+    "changelog:latest": "conventional-changelog -p conventionalcommits -r 1 > RELEASE_NOTES.md",
+    "test": "vitest run"
   },
   "repository": {
     "type": "git",
