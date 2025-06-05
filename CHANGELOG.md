@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.1.0](https://github.com/guifelix/mcp-server-todotxt/compare/v1.0.0...v1.1.0) (2025-06-05)
+
+
+### Features
+
+* **tools:** refactor tool registration and enhance task management functions ([6d2fdc4](https://github.com/guifelix/mcp-server-todotxt/commit/6d2fdc4785b2427fd8e81e42b519db129f10a169))
+
+
+### Bug Fixes
+
+* **package:** add missing test script to package.json ([7af34ad](https://github.com/guifelix/mcp-server-todotxt/commit/7af34ad3553de772a71f1f4f08bf58889b1f9b83))
+
 ## 1.0.0 (2025-06-05)
 
 
