@@ -32,7 +32,9 @@ async function loadTasks() {
   return content.split("\n").filter(Boolean).map((line) => new Item(line));
 }
 
-const packageJsonPath = path.join(path.dirname(fileURLToPath(import.meta.url)), "package.json");
+// Get the project root directory (one level up from dist or src)
+const projectRoot = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+const packageJsonPath = path.join(projectRoot, "package.json");
 const packageJson = JSON.parse(await fs.readFile(packageJsonPath, "utf-8"));
 
 const server = new McpServer({

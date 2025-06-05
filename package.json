@@ -20,7 +20,9 @@
   "devDependencies": {
     "@types/node": "^22.15.3",
     "conventional-changelog-cli": "^5.0.0",
-    "typescript": "^5.8.3"
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.1"
   },
   "scripts": {
     "build": "tsc",

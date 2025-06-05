@@ -11,6 +11,13 @@ export function registerTools(server: McpServer, loadTasks: () => Promise<Item[]
         await fs.writeFile(TODO_FILE_PATH, content, "utf-8");
     }
 
+    // Helper: Convert 1-based taskId to 0-based index, return null if out of bounds
+    function getTaskIndex(taskId: number, tasks: Item[]): number | null {
+        const idx = taskId - 1;
+        if (idx < 0 || idx >= tasks.length) return null;
+        return idx;
+    }
+
     server.tool(
         "add-task",
         {
@@ -48,7 +55,8 @@ export function registerTools(server: McpServer, loadTasks: () => Promise<Item[]
         },
         async ({ taskId }) => {
             const tasks = await loadTasks();
-            if (taskId < 0 || taskId >= tasks.length) {
+            const idx = getTaskIndex(taskId, tasks);
+            if (idx === null) {
                 return {
                     content: [
                         { type: "text", text: "Task not found." },
@@ -56,7 +64,7 @@ export function registerTools(server: McpServer, loadTasks: () => Promise<Item[]
                     isError: true,
                 };
             }
-            tasks[taskId].setCompleted(new Date().toISOString().split("T")[0]);
+            tasks[idx].setCompleted(new Date().toISOString().split("T")[0]);
             await saveTasks(tasks);
             return {
                 content: [
@@ -73,7 +81,8 @@ export function registerTools(server: McpServer, loadTasks: () => Promise<Item[]
         },
         async ({ taskId }) => {
             const tasks = await loadTasks();
-            if (taskId < 0 || taskId >= tasks.length) {
+            const idx = getTaskIndex(taskId, tasks);
+            if (idx === null) {
                 return {
                     content: [
                         { type: "text", text: "Invalid task ID." },
@@ -81,7 +90,7 @@ export function registerTools(server: McpServer, loadTasks: () => Promise<Item[]
                     isError: true,
                 };
             }
-            tasks.splice(taskId, 1);
+            tasks.splice(idx, 1);
             await saveTasks(tasks);
             return {
                 content: [
@@ -218,7 +227,8 @@ export function registerTools(server: McpServer, loadTasks: () => Promise<Item[]
         },
         async ({ taskId, metadata }) => {
             const tasks = await loadTasks();
-            if (taskId < 0 || taskId >= tasks.length) {
+            const idx = getTaskIndex(taskId, tasks);
+            if (idx === null) {
                 return {
                     content: [
                         { type: "text", text: "Invalid task ID." },
@@ -228,7 +238,7 @@ export function registerTools(server: McpServer, loadTasks: () => Promise<Item[]
             }
 
             Object.entries(metadata).forEach(([key, value]) => {
-                tasks[taskId].setExtension(key, value);
+                tasks[idx].setExtension(key, value);
             });
 
             await saveTasks(tasks);
@@ -248,7 +258,8 @@ export function registerTools(server: McpServer, loadTasks: () => Promise<Item[]
         },
         async ({ taskId, keys }) => {
             const tasks = await loadTasks();
-            if (taskId < 0 || taskId >= tasks.length) {
+            const idx = getTaskIndex(taskId, tasks);
+            if (idx === null) {
                 return {
                     content: [
                         { type: "text", text: "Invalid task ID." },
@@ -258,7 +269,7 @@ export function registerTools(server: McpServer, loadTasks: () => Promise<Item[]
             }
 
             keys.forEach(key => {
-                tasks[taskId].removeExtension(key);
+                tasks[idx].removeExtension(key);
             });
 
             await saveTasks(tasks);
@@ -368,7 +379,8 @@ export function registerTools(server: McpServer, loadTasks: () => Promise<Item[]
         },
         async ({ taskId, updates }) => {
             const tasks = await loadTasks();
-            if (taskId < 0 || taskId >= tasks.length) {
+            const idx = getTaskIndex(taskId, tasks);
+            if (idx === null) {
                 return {
                     content: [
                         { type: "text", text: "Invalid task ID." },
@@ -377,7 +389,7 @@ export function registerTools(server: McpServer, loadTasks: () => Promise<Item[]
                 };
             }
 
-            const task = tasks[taskId];
+            const task = tasks[idx];
             if (updates.description) task.setBody(updates.description);
             if (updates.priority) task.setPriority(updates.priority);
             if (updates.contexts) {
