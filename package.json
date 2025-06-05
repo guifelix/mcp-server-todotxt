@@ -20,15 +20,18 @@
   "devDependencies": {
     "@types/node": "^22.15.3",
     "conventional-changelog-cli": "^5.0.0",
+    "shx": "^0.3.4",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3",
     "vitest": "^3.2.1"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && shx chmod +x dist/*.js",
     "changelog": "conventional-changelog -p conventionalcommits -i CHANGELOG.md -s -r 0",
     "changelog:latest": "conventional-changelog -p conventionalcommits -r 1 > RELEASE_NOTES.md",
-    "test": "vitest run"
+    "prepare": "npm run build",
+    "test": "vitest run",
+    "watch": "tsc --watch"
   },
   "repository": {
     "type": "git",
@@ -37,5 +40,8 @@
   "bugs": {
     "url": "https://github.com/guifelix/mcp-server-todotxt/issues"
   },
-  "homepage": "https://github.com/guifelix/mcp-server-todotxt#readme"
+  "homepage": "https://github.com/guifelix/mcp-server-todotxt#readme",
+  "files": [
+    "dist"
+  ]
 }
