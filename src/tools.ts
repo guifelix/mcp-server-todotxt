@@ -3,7 +3,6 @@ import { z } from "zod";
 import { Item } from "jstodotxt";
 import fs from "fs/promises";
 
-// Helper function to save tasks
 export function registerTools(server: McpServer, loadTasks: () => Promise<Item[]>, TODO_FILE_PATH: string) {
 
     async function saveTasks(tasks: Item[]) {
@@ -18,7 +17,33 @@ export function registerTools(server: McpServer, loadTasks: () => Promise<Item[]
         return idx;
     }
 
-    server.tool(
+    const toolRegistry: Array<{
+        name: string;
+        schema: any;
+        description: string;
+        handler: Function;
+    }> = [];
+
+    function registerTool<TArgs>(
+        name: string,
+        schema: any,
+        description: string,
+        handler: (args: TArgs) => Promise<any>
+    ) {
+        toolRegistry.push({ name, schema, description, handler });
+        server.tool(name, schema, handler as any);
+    }
+
+    // Add a method to expose the tool registry (optional, for future use)
+    (server as any).listRegisteredTools = () => toolRegistry;
+
+    registerTool<{
+        description: string;
+        priority?: string;
+        contexts?: string[];
+        projects?: string[];
+        extensions?: Record<string, string>;
+    }>(
         "add-task",
         {
             description: z.string(),
@@ -27,17 +52,16 @@ export function registerTools(server: McpServer, loadTasks: () => Promise<Item[]
             projects: z.array(z.string()).optional(),
             extensions: z.record(z.string(), z.string()).optional(),
         },
+        "Add a new task to the todo list. Supports optional priority, contexts, projects, and custom metadata.",
         async ({ description, priority, contexts, projects, extensions }) => {
             const tasks = await loadTasks();
             const newTask = new Item(description);
-
             if (priority) newTask.setPriority(priority);
-            if (contexts) contexts.forEach(context => newTask.addContext(context));
-            if (projects) projects.forEach(project => newTask.addProject(project));
+            if (contexts) contexts.forEach((context: string) => newTask.addContext(context));
+            if (projects) projects.forEach((project: string) => newTask.addProject(project));
             if (extensions) {
-                Object.entries(extensions).forEach(([key, value]) => newTask.setExtension(key, value));
+                Object.entries(extensions).forEach(([key, value]) => newTask.setExtension(key as string, value as string));
             }
-
             tasks.push(newTask);
             await saveTasks(tasks);
             return {
@@ -48,11 +72,10 @@ export function registerTools(server: McpServer, loadTasks: () => Promise<Item[]
         }
     );
 
-    server.tool(
+    registerTool<{ taskId: number }>(
         "complete-task",
-        {
-            taskId: z.number(),
-        },
+        { taskId: z.number() },
+        "Mark a task as completed by its 1-based ID.",
         async ({ taskId }) => {
             const tasks = await loadTasks();
             const idx = getTaskIndex(taskId, tasks);
@@ -74,11 +97,10 @@ export function registerTools(server: McpServer, loadTasks: () => Promise<Item[]
         }
     );
 
-    server.tool(
+    registerTool<{ taskId: number }>(
         "delete-task",
-        {
-            taskId: z.number(),
-        },
+        { taskId: z.number() },
+        "Delete a task by its 1-based ID.",
         async ({ taskId }) => {
             const tasks = await loadTasks();
             const idx = getTaskIndex(taskId, tasks);
@@ -100,7 +122,14 @@ export function registerTools(server: McpServer, loadTasks: () => Promise<Item[]
         }
     );
 
-    server.tool(
+    registerTool<{
+        filter?: {
+            priority?: string;
+            context?: string;
+            project?: string;
+            extensions?: Record<string, string>;
+        }
+    }>(
         "list-tasks",
         {
             filter: z.object({
@@ -110,10 +139,10 @@ export function registerTools(server: McpServer, loadTasks: () => Promise<Item[]
                 extensions: z.record(z.string(), z.string()).optional(),
             }).optional(),
         },
+        "List all tasks, optionally filtered by priority, context, project, or metadata.",
         async ({ filter }) => {
             const tasks = await loadTasks();
             let filteredTasks = tasks;
-
             if (filter) {
                 if (filter.priority) {
                     filteredTasks = filteredTasks.filter(task => task.priority() === filter.priority);
@@ -133,7 +162,6 @@ export function registerTools(server: McpServer, loadTasks: () => Promise<Item[]
                     });
                 }
             }
-
             return {
                 content: [
                     { type: "text", text: filteredTasks.map(task => task.toString()).join("\n") },
@@ -142,15 +170,13 @@ export function registerTools(server: McpServer, loadTasks: () => Promise<Item[]
         }
     );
 
-    server.tool(
+    registerTool<{ query: string }>(
         "search-tasks",
-        {
-            query: z.string(),
-        },
+        { query: z.string() },
+        "Search for tasks containing a query string.",
         async ({ query }) => {
             const tasks = await loadTasks();
             const matchingTasks = tasks.filter(task => task.toString().includes(query));
-
             return {
                 content: [
                     { type: "text", text: matchingTasks.map(task => task.toString()).join("\n") },
@@ -159,27 +185,24 @@ export function registerTools(server: McpServer, loadTasks: () => Promise<Item[]
         }
     );
 
-    server.tool(
+    registerTool<{ by: "priority" | "creationDate" | "completionDate" }>(
         "sort-tasks",
-        {
-            by: z.enum(["priority", "creationDate", "completionDate"]),
-        },
+        { by: z.enum(["priority", "creationDate", "completionDate"]) },
+        "Sort tasks by priority, creation date, or completion date.",
         async ({ by }) => {
             const tasks = await loadTasks();
-            let sortedTasks;
-
+            let sortedTasks = tasks.slice();
             switch (by) {
                 case "priority":
-                    sortedTasks = tasks.sort((a, b) => (a.priority() || "").localeCompare(b.priority() || ""));
+                    sortedTasks = sortedTasks.sort((a, b) => (a.priority() || "").localeCompare(b.priority() || ""));
                     break;
                 case "creationDate":
-                    sortedTasks = tasks.sort((a, b) => new Date(a.created()?.toISOString() || 0).getTime() - new Date(b.created()?.toISOString() || 0).getTime());
+                    sortedTasks = sortedTasks.sort((a, b) => new Date(a.created()?.toISOString() || 0).getTime() - new Date(b.created()?.toISOString() || 0).getTime());
                     break;
                 case "completionDate":
-                    sortedTasks = tasks.sort((a, b) => new Date(a.completed()?.toISOString() || 0).getTime() - new Date(b.completed()?.toISOString() || 0).getTime());
+                    sortedTasks = sortedTasks.sort((a, b) => new Date(a.completed()?.toISOString() || 0).getTime() - new Date(b.completed()?.toISOString() || 0).getTime());
                     break;
             }
-
             return {
                 content: [
                     { type: "text", text: sortedTasks.map(task => task.toString()).join("\n") },
@@ -188,7 +211,13 @@ export function registerTools(server: McpServer, loadTasks: () => Promise<Item[]
         }
     );
 
-    server.tool(
+    registerTool<{
+        criteria: {
+            priority?: string;
+            context?: string;
+            project?: string;
+        }
+    }>(
         "filter-tasks",
         {
             criteria: z.object({
@@ -197,10 +226,10 @@ export function registerTools(server: McpServer, loadTasks: () => Promise<Item[]
                 project: z.string().optional(),
             }),
         },
+        "Filter tasks by specific criteria (priority, context, project).",
         async ({ criteria }) => {
             const tasks = await loadTasks();
             let filteredTasks = tasks;
-
             if (criteria.priority) {
                 filteredTasks = filteredTasks.filter(task => task.priority() === criteria.priority);
             }
@@ -210,7 +239,6 @@ export function registerTools(server: McpServer, loadTasks: () => Promise<Item[]
             if (criteria.project) {
                 filteredTasks = filteredTasks.filter(task => criteria.project && task.projects().includes(criteria.project));
             }
-
             return {
                 content: [
                     { type: "text", text: filteredTasks.map(task => task.toString()).join("\n") },
@@ -219,12 +247,13 @@ export function registerTools(server: McpServer, loadTasks: () => Promise<Item[]
         }
     );
 
-    server.tool(
+    registerTool<{ taskId: number; metadata: Record<string, string> }>(
         "add-metadata",
         {
             taskId: z.number(),
             metadata: z.record(z.string()),
         },
+        "Add custom metadata (key-value pairs) to a task by ID.",
         async ({ taskId, metadata }) => {
             const tasks = await loadTasks();
             const idx = getTaskIndex(taskId, tasks);
@@ -236,11 +265,9 @@ export function registerTools(server: McpServer, loadTasks: () => Promise<Item[]
                     isError: true,
                 };
             }
-
             Object.entries(metadata).forEach(([key, value]) => {
-                tasks[idx].setExtension(key, value);
+                tasks[idx].setExtension(key as string, value as string);
             });
-
             await saveTasks(tasks);
             return {
                 content: [
@@ -250,12 +277,13 @@ export function registerTools(server: McpServer, loadTasks: () => Promise<Item[]
         }
     );
 
-    server.tool(
+    registerTool<{ taskId: number; keys: string[] }>(
         "remove-metadata",
         {
             taskId: z.number(),
             keys: z.array(z.string()),
         },
+        "Remove specific metadata keys from a task by ID.",
         async ({ taskId, keys }) => {
             const tasks = await loadTasks();
             const idx = getTaskIndex(taskId, tasks);
@@ -267,11 +295,9 @@ export function registerTools(server: McpServer, loadTasks: () => Promise<Item[]
                     isError: true,
                 };
             }
-
-            keys.forEach(key => {
+            keys.forEach((key: string) => {
                 tasks[idx].removeExtension(key);
             });
-
             await saveTasks(tasks);
             return {
                 content: [
@@ -281,91 +307,120 @@ export function registerTools(server: McpServer, loadTasks: () => Promise<Item[]
         }
     );
 
-    server.tool("batch-operations", {
-        operations: z.array(z.object({
-            action: z.enum(["update", "delete", "mark-complete"]),
-            criteria: z.object({
-                priority: z.string().optional(),
-                context: z.string().optional(),
-                project: z.string().optional(),
-            }).optional(),
-            updates: z.object({
-                priority: z.string().optional(),
-                addContexts: z.array(z.string()).optional(),
-                removeContexts: z.array(z.string()).optional(),
-                addProjects: z.array(z.string()).optional(),
-                removeProjects: z.array(z.string()).optional(),
-                extensions: z.record(z.string(), z.string()).optional(),
-            }).optional(),
-        })),
-    }, async ({ operations }) => {
-        let tasks = await loadTasks();
-
-        for (const operation of operations) {
-            if (operation.action === "delete") {
-                tasks = tasks.filter(task => {
-                    if (!operation.criteria) return true;
-                    return !(
-                        (operation.criteria.priority && task.priority() === operation.criteria.priority) ||
-                        (operation.criteria.context && task.contexts().includes(operation.criteria.context)) ||
-                        (operation.criteria.project && task.projects().includes(operation.criteria.project))
-                    );
-                });
-            } else if (operation.action === "update") {
-                tasks.forEach(task => {
-                    if (operation.criteria) {
-                        if (
+    registerTool<{
+        operations: Array<{
+            action: "update" | "delete" | "mark-complete";
+            criteria?: {
+                priority?: string;
+                context?: string;
+                project?: string;
+            };
+            updates?: {
+                priority?: string;
+                addContexts?: string[];
+                removeContexts?: string[];
+                addProjects?: string[];
+                removeProjects?: string[];
+                extensions?: Record<string, string>;
+            };
+        }>;
+    }>(
+        "batch-operations",
+        {
+            operations: z.array(z.object({
+                action: z.enum(["update", "delete", "mark-complete"]),
+                criteria: z.object({
+                    priority: z.string().optional(),
+                    context: z.string().optional(),
+                    project: z.string().optional(),
+                }).optional(),
+                updates: z.object({
+                    priority: z.string().optional(),
+                    addContexts: z.array(z.string()).optional(),
+                    removeContexts: z.array(z.string()).optional(),
+                    addProjects: z.array(z.string()).optional(),
+                    removeProjects: z.array(z.string()).optional(),
+                    extensions: z.record(z.string(), z.string()).optional(),
+                }).optional(),
+            })),
+        },
+        "Perform batch operations (update, delete, mark-complete) on tasks matching criteria.",
+        async ({ operations }) => {
+            let tasks = await loadTasks();
+            for (const operation of operations) {
+                if (operation.action === "delete") {
+                    tasks = tasks.filter(task => {
+                        if (!operation.criteria) return true;
+                        return !(
                             (operation.criteria.priority && task.priority() === operation.criteria.priority) ||
                             (operation.criteria.context && task.contexts().includes(operation.criteria.context)) ||
                             (operation.criteria.project && task.projects().includes(operation.criteria.project))
-                        ) {
-                            if (operation.updates) {
-                                if (operation.updates.priority) {
-                                    task.setPriority(operation.updates.priority);
-                                }
-                                if (operation.updates.addContexts) {
-                                    operation.updates.addContexts.forEach(context => task.addContext(context));
-                                }
-                                if (operation.updates.removeContexts) {
-                                    operation.updates.removeContexts.forEach(context => task.removeContext(context));
-                                }
-                                if (operation.updates.addProjects) {
-                                    operation.updates.addProjects.forEach(project => task.addProject(project));
-                                }
-                                if (operation.updates.removeProjects) {
-                                    operation.updates.removeProjects.forEach(project => task.removeProject(project));
-                                }
-                                if (operation.updates.extensions) {
-                                    Object.entries(operation.updates.extensions).forEach(([key, value]) => task.setExtension(key, value));
+                        );
+                    });
+                } else if (operation.action === "update") {
+                    tasks.forEach(task => {
+                        if (operation.criteria) {
+                            if (
+                                (operation.criteria.priority && task.priority() === operation.criteria.priority) ||
+                                (operation.criteria.context && task.contexts().includes(operation.criteria.context)) ||
+                                (operation.criteria.project && task.projects().includes(operation.criteria.project))
+                            ) {
+                                if (operation.updates) {
+                                    if (operation.updates.priority) {
+                                        task.setPriority(operation.updates.priority);
+                                    }
+                                    if (operation.updates.addContexts) {
+                                        operation.updates.addContexts.forEach((context: string) => task.addContext(context));
+                                    }
+                                    if (operation.updates.removeContexts) {
+                                        operation.updates.removeContexts.forEach((context: string) => task.removeContext(context));
+                                    }
+                                    if (operation.updates.addProjects) {
+                                        operation.updates.addProjects.forEach((project: string) => task.addProject(project));
+                                    }
+                                    if (operation.updates.removeProjects) {
+                                        operation.updates.removeProjects.forEach((project: string) => task.removeProject(project));
+                                    }
+                                    if (operation.updates.extensions) {
+                                        Object.entries(operation.updates.extensions).forEach(([key, value]) => task.setExtension(key as string, value as string));
+                                    }
                                 }
                             }
                         }
-                    }
-                });
-            } else if (operation.action === "mark-complete") {
-                tasks.forEach(task => {
-                    if (operation.criteria) {
-                        if (
-                            (operation.criteria.priority && task.priority() === operation.criteria.priority) ||
-                            (operation.criteria.context && task.contexts().includes(operation.criteria.context)) ||
-                            (operation.criteria.project && task.projects().includes(operation.criteria.project))
-                        ) {
-                            task.setCompleted(new Date().toISOString().split("T")[0]);
+                    });
+                } else if (operation.action === "mark-complete") {
+                    tasks.forEach(task => {
+                        if (operation.criteria) {
+                            if (
+                                (operation.criteria.priority && task.priority() === operation.criteria.priority) ||
+                                (operation.criteria.context && task.contexts().includes(operation.criteria.context)) ||
+                                (operation.criteria.project && task.projects().includes(operation.criteria.project))
+                            ) {
+                                task.setCompleted(new Date().toISOString().split("T")[0]);
+                            }
                         }
-                    }
-                });
+                    });
+                }
             }
+            await saveTasks(tasks);
+            return {
+                content: [
+                    { type: "text", text: "Batch operations completed successfully." },
+                ],
+            };
         }
+    );
 
-        await saveTasks(tasks);
-        return {
-            content: [
-                { type: "text", text: "Batch operations completed successfully." },
-            ],
+    registerTool<{
+        taskId: number;
+        updates: {
+            description?: string;
+            priority?: string;
+            contexts?: string[];
+            projects?: string[];
+            extensions?: Record<string, string>;
         };
-    });
-
-    server.tool(
+    }>(
         "update-task",
         {
             taskId: z.number(),
@@ -377,6 +432,7 @@ export function registerTools(server: McpServer, loadTasks: () => Promise<Item[]
                 extensions: z.record(z.string(), z.string()).optional(),
             }),
         },
+        "Update a task's fields (description, priority, contexts, projects, metadata) by ID.",
         async ({ taskId, updates }) => {
             const tasks = await loadTasks();
             const idx = getTaskIndex(taskId, tasks);
@@ -388,22 +444,20 @@ export function registerTools(server: McpServer, loadTasks: () => Promise<Item[]
                     isError: true,
                 };
             }
-
             const task = tasks[idx];
             if (updates.description) task.setBody(updates.description);
             if (updates.priority) task.setPriority(updates.priority);
             if (updates.contexts) {
-                task.contexts().forEach(context => task.removeContext(context));
-                updates.contexts.forEach(context => task.addContext(context));
+                task.contexts().forEach((context: string) => task.removeContext(context));
+                updates.contexts.forEach((context: string) => task.addContext(context));
             }
             if (updates.projects) {
-                task.projects().forEach(project => task.removeProject(project));
-                updates.projects.forEach(project => task.addProject(project));
+                task.projects().forEach((project: string) => task.removeProject(project));
+                updates.projects.forEach((project: string) => task.addProject(project));
             }
             if (updates.extensions) {
-                Object.entries(updates.extensions).forEach(([key, value]) => task.setExtension(key, value));
+                Object.entries(updates.extensions).forEach(([key, value]) => task.setExtension(key as string, value as string));
             }
-
             await saveTasks(tasks);
             return {
                 content: [
