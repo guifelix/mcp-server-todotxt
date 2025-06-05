@@ -5,7 +5,7 @@ node_modules/
 
 # Lock files
 # Uncomment the next line if you want to ignore package-lock.json
-package-lock.json
+# package-lock.json
 pnpm-lock.yaml
 
 # Build outputs
