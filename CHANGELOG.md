@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/guifelix/mcp-server-todotxt/compare/v1.1.0...v1.1.1) (2025-06-05)
+
+
+### Bug Fixes
+
+* **.gitignore:** comment out package-lock.json to prevent accidental inclusion ([213164a](https://github.com/guifelix/mcp-server-todotxt/commit/213164a2f892c6ac08dca2dca6c0e8a70f8ea461))
+
 ## [1.1.0](https://github.com/guifelix/mcp-server-todotxt/compare/v1.0.0...v1.1.0) (2025-06-05)
 
 
