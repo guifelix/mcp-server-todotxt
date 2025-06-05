@@ -1,0 +1,38 @@
+{
+  "name": "mcp-server-todotxt",
+  "version": "1.0.0",
+  "description": "Todo.txt MCP Server",
+  "keywords": [
+    "mcp",
+    "ai",
+    "todo"
+  ],
+  "license": "ISC",
+  "author": "guifelix",
+  "type": "module",
+  "main": "build/index.js",
+  "module": "index.ts",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.11.0",
+    "jstodotxt": "^1.0.0-alpha.4",
+    "zod": "^3.24.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "conventional-changelog-cli": "^5.0.0",
+    "typescript": "^5.8.3"
+  },
+  "scripts": {
+    "build": "tsc",
+    "changelog": "conventional-changelog -p conventionalcommits -i CHANGELOG.md -s -r 0",
+    "changelog:latest": "conventional-changelog -p conventionalcommits -r 1 > RELEASE_NOTES.md"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/guifelix/mcp-server-todotxt.git"
+  },
+  "bugs": {
+    "url": "https://github.com/guifelix/mcp-server-todotxt/issues"
+  },
+  "homepage": "https://github.com/guifelix/mcp-server-todotxt#readme"
+}
