@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.2](https://github.com/guifelix/mcp-server-todotxt/compare/v1.1.1...v1.1.2) (2025-06-09)
+
+
+### Bug Fixes
+
+* **index.ts:** add shebang for Node.js execution ([db52f2d](https://github.com/guifelix/mcp-server-todotxt/commit/db52f2d711a340aed7bee35869313efb4c014e7a))
+
 ## [1.1.1](https://github.com/guifelix/mcp-server-todotxt/compare/v1.1.0...v1.1.1) (2025-06-05)
 
 
