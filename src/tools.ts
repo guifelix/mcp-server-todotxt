@@ -17,48 +17,32 @@ export function registerTools(server: McpServer, loadTasks: () => Promise<Item[]
         return idx;
     }
 
-    const toolRegistry: Array<{
-        name: string;
-        schema: any;
-        description: string;
-        handler: Function;
-    }> = [];
-
-    function registerTool<TArgs>(
-        name: string,
-        schema: any,
-        description: string,
-        handler: (args: TArgs) => Promise<any>
-    ) {
-        toolRegistry.push({ name, schema, description, handler });
-        server.tool(name, schema, handler as any);
-    }
-
-    // Add a method to expose the tool registry (optional, for future use)
-    (server as any).listRegisteredTools = () => toolRegistry;
-
-    registerTool<{
-        description: string;
-        priority?: string;
-        contexts?: string[];
-        projects?: string[];
-        extensions?: Record<string, string>;
-    }>(
+    server.tool(
         "add-task",
+        "Add a new task to the todo list. Description must be plain text. Priority must be a single uppercase letter (A-Z). Contexts must start with @, projects with +.",
         {
-            description: z.string(),
-            priority: z.string().optional(),
-            contexts: z.array(z.string()).optional(),
-            projects: z.array(z.string()).optional(),
+            description: z.string().min(1, "Description cannot be empty").max(200, "Description too long").regex(/^[^\n\r]+$/, "Description must be a single line"),
+            priority: z.string().regex(/^[A-Z]$/, "Priority must be a single uppercase letter (A-Z)").optional(),
+            contexts: z.array(z.string().regex(/^@\w+$/, "Contexts must start with @ and contain only word characters")).optional(),
+            projects: z.array(z.string().regex(/^\+\w+$/, "Projects must start with + and contain only word characters")).optional(),
             extensions: z.record(z.string(), z.string()).optional(),
         },
-        "Add a new task to the todo list. Supports optional priority, contexts, projects, and custom metadata.",
         async ({ description, priority, contexts, projects, extensions }) => {
+            // Handler-level validation (defensive)
+            if (priority && typeof priority === "string" && !/^[A-Z]$/.test(priority)) {
+                return { content: [{ type: "text", text: "Invalid priority: must be a single uppercase letter (A-Z)." }], isError: true };
+            }
+            if (Array.isArray(contexts) && contexts.some((ctx: string) => !/^@\w+$/.test(ctx))) {
+                return { content: [{ type: "text", text: "Invalid context: must start with @ and contain only word characters." }], isError: true };
+            }
+            if (Array.isArray(projects) && projects.some((proj: string) => !/^\+\w+$/.test(proj))) {
+                return { content: [{ type: "text", text: "Invalid project: must start with + and contain only word characters." }], isError: true };
+            }
             const tasks = await loadTasks();
-            const newTask = new Item(description);
-            if (priority) newTask.setPriority(priority);
-            if (contexts) contexts.forEach((context: string) => newTask.addContext(context));
-            if (projects) projects.forEach((project: string) => newTask.addProject(project));
+            const newTask = new Item(description as string);
+            if (priority && typeof priority === "string") newTask.setPriority(priority);
+            if (Array.isArray(contexts)) contexts.forEach((context: string) => newTask.addContext(context));
+            if (Array.isArray(projects)) projects.forEach((project: string) => newTask.addProject(project));
             if (extensions) {
                 Object.entries(extensions).forEach(([key, value]) => newTask.setExtension(key as string, value as string));
             }
@@ -72,10 +56,10 @@ export function registerTools(server: McpServer, loadTasks: () => Promise<Item[]
         }
     );
 
-    registerTool<{ taskId: number }>(
+    server.tool(
         "complete-task",
-        { taskId: z.number() },
         "Mark a task as completed by its 1-based ID.",
+        { taskId: z.number() },
         async ({ taskId }) => {
             const tasks = await loadTasks();
             const idx = getTaskIndex(taskId, tasks);
@@ -97,10 +81,10 @@ export function registerTools(server: McpServer, loadTasks: () => Promise<Item[]
         }
     );
 
-    registerTool<{ taskId: number }>(
+    server.tool(
         "delete-task",
-        { taskId: z.number() },
         "Delete a task by its 1-based ID.",
+        { taskId: z.number() },
         async ({ taskId }) => {
             const tasks = await loadTasks();
             const idx = getTaskIndex(taskId, tasks);
@@ -122,15 +106,9 @@ export function registerTools(server: McpServer, loadTasks: () => Promise<Item[]
         }
     );
 
-    registerTool<{
-        filter?: {
-            priority?: string;
-            context?: string;
-            project?: string;
-            extensions?: Record<string, string>;
-        }
-    }>(
+    server.tool(
         "list-tasks",
+        "List all tasks, optionally filtered by priority, context, project, or metadata.",
         {
             filter: z.object({
                 priority: z.string().optional(),
@@ -139,7 +117,6 @@ export function registerTools(server: McpServer, loadTasks: () => Promise<Item[]
                 extensions: z.record(z.string(), z.string()).optional(),
             }).optional(),
         },
-        "List all tasks, optionally filtered by priority, context, project, or metadata.",
         async ({ filter }) => {
             const tasks = await loadTasks();
             let filteredTasks = tasks;
@@ -170,10 +147,10 @@ export function registerTools(server: McpServer, loadTasks: () => Promise<Item[]
         }
     );
 
-    registerTool<{ query: string }>(
+    server.tool(
         "search-tasks",
-        { query: z.string() },
         "Search for tasks containing a query string.",
+        { query: z.string() },
         async ({ query }) => {
             const tasks = await loadTasks();
             const matchingTasks = tasks.filter(task => task.toString().includes(query));
@@ -185,10 +162,10 @@ export function registerTools(server: McpServer, loadTasks: () => Promise<Item[]
         }
     );
 
-    registerTool<{ by: "priority" | "creationDate" | "completionDate" }>(
+    server.tool(
         "sort-tasks",
-        { by: z.enum(["priority", "creationDate", "completionDate"]) },
         "Sort tasks by priority, creation date, or completion date.",
+        { by: z.enum(["priority", "creationDate", "completionDate"]) },
         async ({ by }) => {
             const tasks = await loadTasks();
             let sortedTasks = tasks.slice();
@@ -211,14 +188,9 @@ export function registerTools(server: McpServer, loadTasks: () => Promise<Item[]
         }
     );
 
-    registerTool<{
-        criteria: {
-            priority?: string;
-            context?: string;
-            project?: string;
-        }
-    }>(
+    server.tool(
         "filter-tasks",
+        "Filter tasks by specific criteria (priority, context, project).",
         {
             criteria: z.object({
                 priority: z.string().optional(),
@@ -226,7 +198,6 @@ export function registerTools(server: McpServer, loadTasks: () => Promise<Item[]
                 project: z.string().optional(),
             }),
         },
-        "Filter tasks by specific criteria (priority, context, project).",
         async ({ criteria }) => {
             const tasks = await loadTasks();
             let filteredTasks = tasks;
@@ -247,13 +218,13 @@ export function registerTools(server: McpServer, loadTasks: () => Promise<Item[]
         }
     );
 
-    registerTool<{ taskId: number; metadata: Record<string, string> }>(
+    server.tool(
         "add-metadata",
+        "Add custom metadata (key-value pairs) to a task by ID.",
         {
             taskId: z.number(),
             metadata: z.record(z.string()),
         },
-        "Add custom metadata (key-value pairs) to a task by ID.",
         async ({ taskId, metadata }) => {
             const tasks = await loadTasks();
             const idx = getTaskIndex(taskId, tasks);
@@ -277,13 +248,13 @@ export function registerTools(server: McpServer, loadTasks: () => Promise<Item[]
         }
     );
 
-    registerTool<{ taskId: number; keys: string[] }>(
+    server.tool(
         "remove-metadata",
+        "Remove specific metadata keys from a task by ID.",
         {
             taskId: z.number(),
             keys: z.array(z.string()),
         },
-        "Remove specific metadata keys from a task by ID.",
         async ({ taskId, keys }) => {
             const tasks = await loadTasks();
             const idx = getTaskIndex(taskId, tasks);
@@ -307,25 +278,9 @@ export function registerTools(server: McpServer, loadTasks: () => Promise<Item[]
         }
     );
 
-    registerTool<{
-        operations: Array<{
-            action: "update" | "delete" | "mark-complete";
-            criteria?: {
-                priority?: string;
-                context?: string;
-                project?: string;
-            };
-            updates?: {
-                priority?: string;
-                addContexts?: string[];
-                removeContexts?: string[];
-                addProjects?: string[];
-                removeProjects?: string[];
-                extensions?: Record<string, string>;
-            };
-        }>;
-    }>(
+    server.tool(
         "batch-operations",
+        "Perform batch operations (update, delete, mark-complete) on tasks matching criteria.",
         {
             operations: z.array(z.object({
                 action: z.enum(["update", "delete", "mark-complete"]),
@@ -344,7 +299,6 @@ export function registerTools(server: McpServer, loadTasks: () => Promise<Item[]
                 }).optional(),
             })),
         },
-        "Perform batch operations (update, delete, mark-complete) on tasks matching criteria.",
         async ({ operations }) => {
             let tasks = await loadTasks();
             for (const operation of operations) {
@@ -411,17 +365,9 @@ export function registerTools(server: McpServer, loadTasks: () => Promise<Item[]
         }
     );
 
-    registerTool<{
-        taskId: number;
-        updates: {
-            description?: string;
-            priority?: string;
-            contexts?: string[];
-            projects?: string[];
-            extensions?: Record<string, string>;
-        };
-    }>(
+    server.tool(
         "update-task",
+        "Update a task's fields (description, priority, contexts, projects, metadata) by ID.",
         {
             taskId: z.number(),
             updates: z.object({
@@ -432,7 +378,6 @@ export function registerTools(server: McpServer, loadTasks: () => Promise<Item[]
                 extensions: z.record(z.string(), z.string()).optional(),
             }),
         },
-        "Update a task's fields (description, priority, contexts, projects, metadata) by ID.",
         async ({ taskId, updates }) => {
             const tasks = await loadTasks();
             const idx = getTaskIndex(taskId, tasks);
@@ -466,4 +411,5 @@ export function registerTools(server: McpServer, loadTasks: () => Promise<Item[]
             };
         }
     );
+
 }
