@@ -1,10 +1,14 @@
-[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/guifelix/mcp-server-todotxt/release-please.yml)
-![NPM Downloads](https://img.shields.io/npm/dy/mcp-server-todotxt)
-![NPM Version](https://img.shields.io/npm/v/mcp-server-todotxt)
-![License](https://img.shields.io/npm/l/mcp-server-todotxt)
-![Types](https://img.shields.io/npm/types/mcp-server-todotxt)
-![Last Commit](https://img.shields.io/github/last-commit/guifelix/mcp-server-todotxt)
-![GitHub issues](https://img.shields.io/github/issues/guifelix/mcp-server-todotxt)](https://www.npmjs.com/package/mcp-server-todotxt)
+[
+  ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/guifelix/mcp-server-todotxt/release-please.yml)
+  ![NPM Downloads](https://img.shields.io/npm/dy/mcp-server-todotxt?label=NPM%20downloads)
+  ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/guifelix/mcp-server-todotxt/total?label=GitHub%20downloads)
+  ![NPM Version](https://img.shields.io/npm/v/mcp-server-todotxt)
+  ![License](https://img.shields.io/npm/l/mcp-server-todotxt)
+  ![Types](https://img.shields.io/npm/types/mcp-server-todotxt)
+  ![Last Commit](https://img.shields.io/github/last-commit/guifelix/mcp-server-todotxt)
+  ![GitHub issues](https://img.shields.io/github/issues/guifelix/mcp-server-todotxt)
+  ![GitHub starts](https://img.shields.io/github/stars/guifelix/mcp-server-todotxt?style=flat)
+](https://www.npmjs.com/package/mcp-server-todotxt)
 
 ---
 
