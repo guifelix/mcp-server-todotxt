@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/guifelix-mcp-server-todotxt-badge.png)](https://mseep.ai/app/guifelix-mcp-server-todotxt)
+
 [
   ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/guifelix/mcp-server-todotxt/release-please.yml)
   ![NPM Downloads](https://img.shields.io/npm/dy/mcp-server-todotxt?label=NPM%20downloads)
