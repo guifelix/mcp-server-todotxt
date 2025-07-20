@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/guifelix/mcp-server-todotxt/compare/v1.1.2...v1.2.0) (2025-07-20)
+
+
+### Features
+
+* **package.json:** add bin field for command line interface ([a7ece71](https://github.com/guifelix/mcp-server-todotxt/commit/a7ece717032ae0362ab0f02b84df6605e4e03905))
+
 ## [1.1.2](https://github.com/guifelix/mcp-server-todotxt/compare/v1.1.1...v1.1.2) (2025-06-09)
 
 
