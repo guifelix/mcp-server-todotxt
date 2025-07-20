@@ -49,6 +49,11 @@ The MCP Todo.txt Integration is a server implementation of the Model Context Pro
 
 ## Installation
 
+For quick installation, use the one-click installation button below
+
+[![Install with NPX in VS Code](https://img.shields.io/badge/VS_Code-NPM-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white)
+](https://insiders.vscode.dev/redirect/mcp/install?name=todotxt&config=%7B%22type%22%3A%20%22stdio%22%2C%22command%22%3A%20%22npx%22%2C%22args%22%3A%20%5B%22-y%22%2C%22guifelix%2Fmcp-server-todotxt%40latest%22%5D%2C%22gallery%22%3A%20true%2C%22env%22%3A%20%7B%22TODO_FILE_PATH%22%3A%20%22full_path%2Ftodo.txt%22%7D%7D)
+
 1. Clone the repository:
    ```bash
    git clone <repository-url>
