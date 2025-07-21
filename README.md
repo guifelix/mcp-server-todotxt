@@ -19,6 +19,10 @@
 
 The MCP Todo.txt Integration is a server implementation of the Model Context Protocol (MCP) that enables interaction with Todo.txt files. This project allows LLMs to manage tasks in a Todo.txt file programmatically using the MCP protocol.
 
+<a href="https://glama.ai/mcp/servers/@guifelix/mcp-server-todotxt">
+  <img width="380" height="200" src="https://glama.ai/mcp/servers/@guifelix/mcp-server-todotxt/badge" alt="Todo.txt Integration MCP server" />
+</a>
+
 ## Features
 
 ### Core Features
